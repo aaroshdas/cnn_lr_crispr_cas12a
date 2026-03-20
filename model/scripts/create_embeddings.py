@@ -11,7 +11,7 @@ from tqdm import tqdm
 def get_dnabert2_embeddings(sequences: List[str], model_name: str = "zhihan1996/DNABERT-2-117M", batch_size: int = 32, max_length: int = 128, layer: str = "cls"):
     """
     model_name = huggingface model id
-    layer = pooling strategy:
+    layer = pooling strategy
         "cls" --> token hidden state
         "mean" --> mean of all token hidden states
         "last_mean" -> mean of last 4 layers
