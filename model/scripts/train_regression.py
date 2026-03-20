@@ -1,10 +1,9 @@
 """
-train_linear.py
 
-python train_linear.py = DNA-BERT-2 + hand-crafted features
-python train_linear.py --no-embed = hand-crafted features only
-python train_linear.py --no-handcrafted = embeddings only
-python train_linear.py --layer mean = mean pooling instead of CLS
+python model/scripts/train_regression.py 
+python model/scripts/train_regression.py --no-embed = hand-crafted features only
+python model/scripts/train_regression.py --no-handcrafted = embeddings only
+python model/scripts/train_regression.py --layer mean = mean pooling instead of CLS
 """
 
 import argparse
@@ -15,15 +14,15 @@ import numpy as np
 import pandas as pd
 
 from scipy.stats import pearsonr, spearmanr
-from sklearn.linear_model import Ridge, Lasso, ElasticNet
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
-from helper_scripts import create_embeddings
-from helper_scripts import feature_engineering
+import create_embeddings
+import feature_engineering
 
 # PATHS
 DATASET_PATH = "../../data/training_sets/raw_data/"
