@@ -25,7 +25,7 @@ import create_embeddings
 import feature_engineering
 
 # PATHS
-DATASET_PATH = "../../data/training_sets/raw_data/"
+DATASET_PATH = os.path.join("data", "training_sets", "raw_data")
 TRAIN_FILE = "Kim_2018_Train.csv"
 TEST_FILE = "Kim_2018_Test.csv"
 
@@ -89,8 +89,7 @@ def assemble_features(sequences, args):
         parts.append(hc)
 
     if not args.no_embed:
-        print(f"[features] Building {args.embed} embeddings")
-        emb = create_embeddings.get_embeddings(sequences, method=args.embed, layer=args.layer)
+        emb = create_embeddings.get_dnabert2_embeddings(sequences, layer=args.layer)
         parts.append(emb.astype(np.float32))
 
 

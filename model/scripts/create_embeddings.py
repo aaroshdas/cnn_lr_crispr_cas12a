@@ -2,10 +2,18 @@
 Extract sequence embeddings using dnabert-2
 """
 
+import sys
+import types
 import numpy as np
 import torch
 from typing import List
 from tqdm import tqdm
+from transformers import AutoTokenizer, AutoModel
+
+
+if "triton" not in sys.modules:
+    sys.modules["triton"] = types.ModuleType("triton")
+
 
 
 def get_dnabert2_embeddings(sequences: List[str], model_name: str = "zhihan1996/DNABERT-2-117M", batch_size: int = 32, max_length: int = 128, layer: str = "cls"):
@@ -16,12 +24,12 @@ def get_dnabert2_embeddings(sequences: List[str], model_name: str = "zhihan1996/
         "mean" --> mean of all token hidden states
         "last_mean" -> mean of last 4 layers
     """
-    from transformers import AutoTokenizer, AutoModel
-
     if torch.cuda.is_available():
         device = "cuda" 
     else:
         device = "cpu"
+    
+   
 
     print(f"[Embeddings] Loading {model_name} on {device}...")
 
