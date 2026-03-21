@@ -192,26 +192,3 @@ def build_features(sequences: List[str], feature_names: List[str] = None) -> pd.
         df = df[feature_names]
     return df
 
-"""
-all features 
-[
-'gc_content', 
-'tm', 
-'nn_dg', 
-'self_comp', 
-'homopolymer_count', 
-'mono_A', 'mono_C', 'mono_G', 'mono_T', 
-'di_repeats', 
-'pos_gc', 
-'pam_t_count', 'pam_is_tttv', 
-'spacer_gc', 
-'seed_gc', 
-'seed_a_count', 
-'cleavage_gc',
-'spacer_tm', 
-'spacer_nn_dg', 
-'full_self_comp', 
-'upstream_A', 'upstream_C', 'upstream_G', 'upstream_T',
-'one_hot'
-]
-"""

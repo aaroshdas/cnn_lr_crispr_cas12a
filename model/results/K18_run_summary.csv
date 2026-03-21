@@ -1,2 +1,3 @@
-layer,no_embed,no_handcrafted,no_cv,embedding_method,include_onehot,test_rmse,test_mae,test_pearson,test_spearman
-cls,True,False,False,kmer,True,0.7066897837513477,0.552716076374054,0.5358762,0.5279292412996133
+layer,no_embed,no_handcrafted,no_cv,embedding_method,test_rmse,test_mae,test_pearson,test_spearman,gc_content,tm,nn_dg,self_comp,homopolymer_count,mono_A,mono_C,mono_G,mono_T,di_repeats,pos_gc,pam_t_count,pam_is_tttv,spacer_gc,seed_gc,seed_a_count,cleavage_gc,spacer_tm,spacer_nn_dg,full_self_comp,upstream_A,upstream_C,upstream_G,upstream_T,one_hot
+cls,True,False,False,kmer,0.8013861999562103,0.6651444435119629,0.29205284,0.25590274352173686,True,False,False,True,True,False,False,False,False,False,False,False,False,True,False,False,True,False,False,False,False,False,False,False,True
+cls,True,False,False,kmer,0.7603997180739537,0.6040903329849243,0.39954972,0.39345570914262856,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True

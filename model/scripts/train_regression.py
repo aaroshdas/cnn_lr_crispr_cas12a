@@ -1,5 +1,5 @@
 """
-python model/scripts/train_regression.py --no-embed --include-onehot
+python model/scripts/train_regression.py --no-embed
 python model/scripts/train_regression.py 
 python model/scripts/train_regression.py --no-handcrafted
 python model/scripts/train_regression.py --layer mean
@@ -33,7 +33,6 @@ OUTPUT_DIR = os.path.join("model", "results")
 
 TARGET_COL = "Indel frequency"
 INP_COL = "Context Sequence"
-
 
 def load_data(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
@@ -85,15 +84,7 @@ def assemble_features(sequences, args):
     if not args.no_handcrafted:
         print("[features] Building generated features")
         hc = feature_engineering.build_features(sequences, 
-                                                feature_names=
-        [
-        'gc_content', 
-        'self_comp', 
-        'homopolymer_count', 
-        'spacer_gc', 
-        'cleavage_gc',
-        'one_hot'
-        ]
+                                                feature_names=ACTIVE_FEATURES
        ).values.astype(np.float32)
         hc = np.nan_to_num(hc)
         parts.append(hc)
@@ -208,7 +199,29 @@ def main():
 
     summary_path = os.path.join(OUTPUT_DIR, "K18_run_summary.csv")
 
-    summary = {**vars(args), **{f"test_{k}": v for k, v in test_metrics.items()}}
+    all_features = [
+        'gc_content', 
+        'tm', 
+        'nn_dg', 
+        'self_comp', 
+        'homopolymer_count', 
+        'mono_A', 'mono_C', 'mono_G', 'mono_T', 
+        'di_repeats', 
+        'pos_gc', 
+        'pam_t_count', 'pam_is_tttv', 
+        'spacer_gc', 
+        'seed_gc', 
+        'seed_a_count', 
+        'cleavage_gc',
+        'spacer_tm', 
+        'spacer_nn_dg', 
+        'full_self_comp', 
+        'upstream_A', 'upstream_C', 'upstream_G', 'upstream_T',
+        'one_hot'
+    ]
+
+    feature_flags = {f: (f in ACTIVE_FEATURES) for f in all_features}
+    summary = {**vars(args), **{f"test_{k}": v for k, v in test_metrics.items()}, **feature_flags}
     summary_df = pd.DataFrame([summary])
 
     if os.path.exists(summary_path):
@@ -216,6 +229,36 @@ def main():
     else:
         summary_df.to_csv(summary_path, index=False)
 
+
+# ACTIVE_FEATURES = [    
+#     'gc_content', 
+#     'self_comp', 
+#     'homopolymer_count', 
+#     'spacer_gc', 
+#     'cleavage_gc',
+#     'one_hot'
+# ]
+
+ACTIVE_FEATURES = [
+    'gc_content', 
+    'tm', 
+    'nn_dg', 
+    'self_comp', 
+    'homopolymer_count', 
+    'mono_A', 'mono_C', 'mono_G', 'mono_T', 
+    'di_repeats', 
+    'pos_gc', 
+    'pam_t_count', 'pam_is_tttv', 
+    'spacer_gc', 
+    'seed_gc', 
+    'seed_a_count', 
+    'cleavage_gc',
+    'spacer_tm', 
+    'spacer_nn_dg', 
+    'full_self_comp', 
+    'upstream_A', 'upstream_C', 'upstream_G', 'upstream_T',
+    'one_hot'
+]
 
 if __name__ == "__main__":
     main()
