@@ -140,12 +140,12 @@ def cas12a_specific_features(seq: str, pam_start: int = 4, spacer_start: int = 8
 
 
 
-def build_features(sequences: List[str], include_one_hot: bool = False) -> pd.DataFrame:
+def build_features(sequences: List[str], feature_names: List[str] = None) -> pd.DataFrame:
     """
     Build a feature matrix from a list of gRNA input sequences
-
     sequences = input
     include_one_hot = only set to true if not using embeddings
+    feature_names  = optional list of column names to include; if None, all features are returned
     """
     rows = []
     for seq in sequences:
@@ -160,12 +160,18 @@ def build_features(sequences: List[str], include_one_hot: bool = False) -> pd.Da
 
         for nt, val in zip("ACGT", mononucleotide_composition(seq)):
             row[f"mono_{nt}"] = val
+        
+        if feature_names is None or "di_repeats" not in feature_names:
+            for d, val in zip([a + b for a in "ACGT" for b in "ACGT"], dinucleotide_composition(seq)):
+                row[f"di_{d}"] = val
+        else:
+            feature_names = [i for i in feature_names if i != "di_repeats"]
 
-        for d, val in zip([a + b for a in "ACGT" for b in "ACGT"], dinucleotide_composition(seq)):
-            row[f"di_{d}"] = val
-
-        for i, val in enumerate(positional_gc(seq, window=4)):
-            row[f"pgc_w{i}"] = val
+        if feature_names is None or "pos_gc" not in feature_names:
+            for i, val in enumerate(positional_gc(seq, window=4)):
+                row[f"pgc_w{i}"] = val
+        else:
+            feature_names = [i for i in feature_names if i != "pos_gc"]
 
         row.update(cas12a_specific_features(seq))
 
@@ -173,10 +179,39 @@ def build_features(sequences: List[str], include_one_hot: bool = False) -> pd.Da
         for nt in "ACGT":
             row[f"upstream_{nt}"] = upstream.count(nt) / 4
 
-        if include_one_hot:
+        if feature_names is None or "one_hot" not in feature_names:
             for i, val in enumerate(positional_one_hot(seq)):
                 row[f"oh_{i}"] = val
+        else:
+            feature_names = [i for i in feature_names if i != "one_hot"]
 
         rows.append(row)
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    if feature_names is not None:
+        df = df[feature_names]
+    return df
+
+"""
+all features 
+[
+'gc_content', 
+'tm', 
+'nn_dg', 
+'self_comp', 
+'homopolymer_count', 
+'mono_A', 'mono_C', 'mono_G', 'mono_T', 
+'di_repeats', 
+'pos_gc', 
+'pam_t_count', 'pam_is_tttv', 
+'spacer_gc', 
+'seed_gc', 
+'seed_a_count', 
+'cleavage_gc',
+'spacer_tm', 
+'spacer_nn_dg', 
+'full_self_comp', 
+'upstream_A', 'upstream_C', 'upstream_G', 'upstream_T',
+'one_hot'
+]
+"""

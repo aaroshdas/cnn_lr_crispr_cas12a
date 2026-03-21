@@ -30,11 +30,11 @@ def find_window(seq: str, pam: str):
     # seq = reverse_complement(seq)
 
 
-    i = seq[3:].find(pam)
+    i = seq[4:].find(pam)
     if i == -1:
-        print(f"PAM {pam} not found in sequence {seq}")
+        # print(f"PAM {pam} not found in sequence {seq}")
         return None
-    i+=3
+    i+=4
 
     window_start = i - PAM_START
     window_end   = window_start + WINDOW_LEN
@@ -67,7 +67,7 @@ def predict(sequence: str, pam: str =None):
     t_mean = float(np.load(MEAN_PATH))
     t_std  = float(np.load(STD_PATH))
 
-    features = build_features([sequence], include_one_hot=True).values.astype(np.float32)
+    features = build_features([sequence]).values.astype(np.float32)
     features = np.nan_to_num(features)
 
     pred_norm = model.predict(features)[0]

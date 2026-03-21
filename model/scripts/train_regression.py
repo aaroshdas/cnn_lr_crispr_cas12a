@@ -81,10 +81,20 @@ def evaluate(y_true, y_pred, prefix=""):
 def assemble_features(sequences, args):
     parts = []
 
+
     if not args.no_handcrafted:
         print("[features] Building generated features")
-        print(f"[features] Include one hot: {args.include_onehot}")
-        hc = feature_engineering.build_features(sequences, include_one_hot=args.include_onehot).values.astype(np.float32)
+        hc = feature_engineering.build_features(sequences, 
+                                                feature_names=
+        [
+        'gc_content', 
+        'self_comp', 
+        'homopolymer_count', 
+        'spacer_gc', 
+        'cleavage_gc',
+        'one_hot'
+        ]
+       ).values.astype(np.float32)
         hc = np.nan_to_num(hc)
         parts.append(hc)
 
@@ -142,7 +152,6 @@ def parse_args():
     parser.add_argument("--no-handcrafted", action="store_true")
     parser.add_argument("--no-cv", action="store_true")
     parser.add_argument("--embedding-method", default="kmer", choices=["kmer", "dnabert2"])
-    parser.add_argument("--include-onehot", action="store_true")
 
     return parser.parse_args()
 
