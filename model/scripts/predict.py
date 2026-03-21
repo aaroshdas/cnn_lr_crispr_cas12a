@@ -4,10 +4,13 @@ import numpy as np
 import csv
 from feature_engineering import build_features
 import os
+import pandas as pd
 
 MODEL_PATH = os.path.join("model", "weights", "K18_ridge_regression_model.pkl")
-MEAN_PATH = "../weights/target_mean.npy"
-STD_PATH = "../weights/target_std.npy"
+MEAN_PATH = os.path.join("model", "weights", "target_mean.npy")
+STD_PATH = os.path.join("model", "weights", "target_std.npy")
+
+OUTPUT_DIR = os.path.join("model", "results")
 
 PAM_START  = 4
 WINDOW_LEN = 34
@@ -27,20 +30,24 @@ def find_window(seq: str, pam: str):
     # seq = reverse_complement(seq)
 
 
-    i = seq.find(pam)
+    i = seq[3:].find(pam)
     if i == -1:
-        raise ValueError(f"PAM {pam} not found in sequence {seq}")
+        print(f"PAM {pam} not found in sequence {seq}")
+        return None
+    i+=3
 
     window_start = i - PAM_START
     window_end   = window_start + WINDOW_LEN
 
     if window_start < 0:
-        raise ValueError(f"PAM found at position {i} but not enough upstream context | (need {PAM_START}nt before PAM, only {i}nt available).")
+        print(f'PAM found at position {i} but not enough upstream context | (need {PAM_START}nt before PAM, only {i}nt available).')
+        return None
     if window_end > len(seq):
-        raise ValueError(f"PAM found at position {i} but not enough downstream context | (need {window_end}nt total, sequence is {len(seq)}nt).")
+        print(f"PAM found at position {i} but not enough downstream context | (need {window_end}nt total, sequence is {len(seq)}nt).")
+        return None
 
     window = seq[window_start:window_end]
-    print(f"PAM '{pam}' found at position {i}")
+    # print(f"PAM '{pam}' found at position {i}")
 
     return window
 
@@ -49,6 +56,8 @@ def predict(sequence: str, pam: str =None):
     sequence = sequence.upper().strip()
     if pam is not None:
         sequence = find_window(sequence, pam)
+        if sequence is None:
+            return None
     elif len(sequence) > WINDOW_LEN:
         sequence[:WINDOW_LEN]
 
@@ -78,6 +87,7 @@ def predict_csv(csv_path: str):
 
     print(f"{'gRNA':<30} {'PAM':<6} {'Predicted':>10} {'Actual':>10}")
     print("-" * 60)
+    result_df= pd.DataFrame(columns=["sequence", "Predicted", "Actual"])
 
     for row in rows:
         name = row[name_col].strip()
@@ -87,12 +97,20 @@ def predict_csv(csv_path: str):
 
         if not sequence or not pam:
             print(f"{name:<30} {'':6} {'N/A':>10} {actual:>10}  (skipped - missing sequence/PAM)")
+            result_df.loc[len(result_df)] = {"sequence": sequence, "Predicted": -1, "Actual": actual}
+        
             continue
 
 
         pred = predict(sequence, pam=pam)
-        print(f"{name:<30} {pam:<6} {pred:>9.1f}% {actual:>10}")
-    
+        if pred != None:
+            result_df.loc[len(result_df)] = {"sequence": sequence, "Predicted": pred, "Actual": actual}
+            print(f"{name:<30} {pam:<6} {pred:>9.1f}% {actual:>10}")
+            
+        else:
+            result_df.loc[len(result_df)] = {"sequence": sequence, "Predicted": -1, "Actual": actual}
+            print(f"Error in predicting {name}, skipping")
+        result_df.to_csv(os.path.join(OUTPUT_DIR, "QKR_predictions.csv"), index=False)
 
 
 if __name__ == "__main__":
@@ -108,7 +126,10 @@ if __name__ == "__main__":
         result = predict(args.sequence, pam=args.pam)
         print(f"Predicted indel frequency: {result:.2f}%")
     else:
-        p.error("Provided no sequence or -csv <path>")
+        p.error("Provided no sequence or csv")
+    
 
 # python model/scripts/predict.py CCTTTTGGGTGTGGGAGATCTCTGCTTCTGATGGCTCAAACACAGCG --pam TTTG
 # python model/scripts/predict.py CTTTGAGGGGACAATTTCAAGGAGTAGTGAAAACAGAAGAACAGAGA --pam TTTC
+# python model/scripts/predict.py --csv data/quickr_sets/quickr_raw_sequences.csv
+
