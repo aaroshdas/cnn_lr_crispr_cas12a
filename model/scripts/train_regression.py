@@ -1,7 +1,7 @@
 """
 
 python model/scripts/train_regression.py 
-python model/scripts/train_regression.py --no-embed = hand-crafted features only
+python model/scripts/train_regression.py --no-embed --include-onehot = hand-crafted features only
 python model/scripts/train_regression.py --no-handcrafted = embeddings only
 python model/scripts/train_regression.py --layer mean = mean pooling instead of CLS
 """
@@ -84,7 +84,8 @@ def assemble_features(sequences, args):
 
     if not args.no_handcrafted:
         print("[features] Building generated features")
-        hc = feature_engineering.build_features(sequences, include_one_hot=False).values.astype(np.float32)
+        print(f"[features] Include one hot: {args.include_onehot}")
+        hc = feature_engineering.build_features(sequences, include_one_hot=args.include_onehot).values.astype(np.float32)
         hc = np.nan_to_num(hc)
         parts.append(hc)
 
@@ -142,6 +143,7 @@ def parse_args():
     parser.add_argument("--no-handcrafted", action="store_true")
     parser.add_argument("--no-cv", action="store_true")
     parser.add_argument("--embedding-method", default="kmer", choices=["kmer", "dnabert2"])
+    parser.add_argument("--include-onehot", action="store_true")
 
     return parser.parse_args()
 

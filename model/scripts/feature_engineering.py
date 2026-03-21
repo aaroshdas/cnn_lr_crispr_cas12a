@@ -140,8 +140,7 @@ def cas12a_specific_features(seq: str, pam_start: int = 4, spacer_start: int = 8
 
 
 
-def build_features(sequences: List[str],
-                   include_one_hot: bool = False) -> pd.DataFrame:
+def build_features(sequences: List[str], include_one_hot: bool = False) -> pd.DataFrame:
     """
     Build a feature matrix from a list of gRNA input sequences
 

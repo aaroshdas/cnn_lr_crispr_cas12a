@@ -108,6 +108,7 @@ def get_kmer_embeddings(sequences: List[str], k: int = 6, layer: str = "temp_avo
  
     return np.vstack(vectors)
 
+
 def get_embeddings(sequences: List[str], method: str = "dnabert2", **kwargs):
     """
     kmer / dnabert2

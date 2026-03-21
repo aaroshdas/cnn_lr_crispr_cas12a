@@ -1,2 +1,2 @@
-layer,no_embed,no_handcrafted,no_cv,embedding_method,test_rmse,test_mae,test_pearson,test_spearman
-cls,False,False,False,kmer,0.8540087569433247,0.6964321136474609,0.36962032,0.3240766256278057
+layer,no_embed,no_handcrafted,no_cv,embedding_method,include_onehot,test_rmse,test_mae,test_pearson,test_spearman
+cls,True,False,False,kmer,True,0.7066897837513477,0.552716076374054,0.5358762,0.5279292412996133
