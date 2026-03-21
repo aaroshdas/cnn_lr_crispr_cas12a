@@ -1,9 +1,11 @@
 import argparse
 import pickle
 import numpy as np
+import csv
 from feature_engineering import build_features
+import os
 
-MODEL_PATH = "../linear_results/ridge_model.pkl"
+MODEL_PATH = os.path.join("model", "weights", "K18_ridge_regression_model.pkl")
 MEAN_PATH = "../weights/target_mean.npy"
 STD_PATH = "../weights/target_std.npy"
 
@@ -20,9 +22,9 @@ def reverse_complement(seq: str) -> str:
 def find_window(seq: str, pam: str):
     pam = pam.upper()
     seq = seq.upper()
-    
-    pam = reverse_complement(pam)
-    seq = reverse_complement(seq)
+
+    # pam = reverse_complement(pam)
+    # seq = reverse_complement(seq)
 
 
     i = seq.find(pam)
@@ -64,15 +66,49 @@ def predict(sequence: str, pam: str =None):
 
     return pred_pct
 
-if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument("sequence", type=str)
-    p.add_argument("--pam", type=str, default=None)
-    args = p.parse_args()
+def predict_csv(csv_path: str):
+    seq_col = "FOR MODEL - 47 bp match target sequence reverse complement"
+    pam_col = "PAM (reverse complement on DNA target sequence)"
+    act_col = "Updated QUiCKR Results (March 17)"
+    name_col = "gRNA name"
+
+    with open(csv_path, newline="") as f:
+        reader = csv.DictReader(f)
+        rows = [r for r in reader if r.get(name_col, "").strip()]
+
+    print(f"{'gRNA':<30} {'PAM':<6} {'Predicted':>10} {'Actual':>10}")
+    print("-" * 60)
+
+    for row in rows:
+        name = row[name_col].strip()
+        pam = row[pam_col].strip()
+        sequence = row[seq_col].strip()
+        actual = row[act_col].strip()
+
+        if not sequence or not pam:
+            print(f"{name:<30} {'':6} {'N/A':>10} {actual:>10}  (skipped - missing sequence/PAM)")
+            continue
+
+
+        pred = predict(sequence, pam=pam)
+        print(f"{name:<30} {pam:<6} {pred:>9.1f}% {actual:>10}")
     
 
-    result = predict(args.sequence, pam=args.pam)
-    print(f"Predicted indel frequency: {result:.2f}%")
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("sequence", nargs="?", type=str, default=None)
+    p.add_argument("--pam", type=str, default=None)
+    p.add_argument("--csv", type=str, default=None)
+    args = p.parse_args()
+
+    if args.csv:
+        predict_csv(args.csv)
+    elif args.sequence:
+        result = predict(args.sequence, pam=args.pam)
+        print(f"Predicted indel frequency: {result:.2f}%")
+    else:
+        p.error("Provided no sequence or -csv <path>")
 
 # python model/scripts/predict.py CCTTTTGGGTGTGGGAGATCTCTGCTTCTGATGGCTCAAACACAGCG --pam TTTG
-# python model/scripts/predict.py CCCCCTTCTGACCAAACAAGCCTCGAATCAGCCGCCGGGAAGGCCAC --pam ACCA
+# python model/scripts/predict.py CTTTGAGGGGACAATTTCAAGGAGTAGTGAAAACAGAAGAACAGAGA --pam TTTC
