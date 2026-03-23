@@ -7,10 +7,10 @@ Architecture:
     Handcrafted features at DNN stage
 
 Usage:
-    (seq only) python train_cnn.py 
-    (handcrafted) python train_cnn.py --handcrafted
-    (checkpoint) python train_cnn.py --checkpoint model/weights/cnn_best.pt
-    (eval)  python train_cnn.py --eval-only --checkpoint model/weights/cnn_best.pt
+    (seq only) python cnn_model/scripts/train_model.py 
+    (w/ handcrafted) python cnn_model/scripts/train_model.py --handcrafted
+    (checkpoint) python cnn_model/scripts/train_model.py --checkpoint cnn_model/weights/cnn_best.pt
+    (eval)  python cnn_model/scripts/train_model.py --eval-only --checkpoint cnn_model/weights/cnn_best.pt
 """
 
 import argparse
@@ -34,8 +34,8 @@ import feature_engineering # type: ignore
 DATASET_PATH = os.path.join("data", "training_sets", "raw_data")
 TRAIN_FILE = "Kim_2018_Train.csv"
 TEST_FILE  = "Kim_2018_Test.csv"
-WEIGHTS_DIR = os.path.join("model", "weights")
-OUTPUT_DIR = os.path.join("model", "results")
+WEIGHTS_DIR = os.path.join("cnn_model", "weights")
+OUTPUT_DIR = os.path.join("cnn_model", "results")
 
 TARGET_COL = "Indel frequency"
 INP_COL = "Context Sequence"
@@ -53,20 +53,19 @@ def one_hot_encode(seq: str) -> np.ndarray:
 
 class GRNADataset(Dataset):
     def __init__(self, sequences, targets, handcrafted_features=None):
-        self.seqs = [one_hot_encode(s) for s in sequences]
-        self.y = targets.astype(np.float32)
-        self.hc = handcrafted_features                         
-
+        self.seqs = torch.tensor(np.stack([one_hot_encode(s) for s in sequences])) 
+        self.y = torch.tensor(targets.astype(np.float32))
+        self.hc = None
+        if handcrafted_features is not None:
+            self.hc = torch.tensor(handcrafted_features)
+    
     def __len__(self):
         return len(self.seqs)
 
     def __getitem__(self, i):
-        x_seq = torch.tensor(self.seqs[i])
-        y = torch.tensor(self.y[i])
         if self.hc is not None:
-            x_hc = torch.tensor(self.hc[i])
-            return x_seq, x_hc, y
-        return x_seq, y
+            return self.seqs[i], self.hc[i], self.y[i]
+        return self.seqs[i], self.y[i]
 
 class ResConvBlock(nn.Module):
     def __init__(self, in_ch, out_ch, kernel):
@@ -166,7 +165,7 @@ def normalize_target(train_df, test_df):
     return train_df, test_df, mean, std
 
 
-def build_hc_features(sequences):
+def build_hc_features(sequences, mean=None, std=None):
     """
     re-use existing feature_engineering pipeline w/o one-hot
     """
@@ -194,9 +193,11 @@ def build_hc_features(sequences):
     arr = df[cols].values.astype(np.float32)
     arr = np.nan_to_num(arr)
 
-    mean = arr.mean(axis=0, keepdims=True)
-    std = arr.std(axis=0,  keepdims=True) + 1e-8
-    return (arr - mean) / std, len(cols)
+    if mean is None:
+        mean = arr.mean(axis=0, keepdims=True)
+        std = arr.std(axis=0,  keepdims=True) + 1e-6
+
+    return (arr - mean) / std, len(cols), mean, std
 
 
 def evaluate(y_true, y_pred, prefix=""):
@@ -207,23 +208,34 @@ def evaluate(y_true, y_pred, prefix=""):
     print(f" {prefix}RMSE={rmse:.4f}  MAE={mae:.4f}  Pearson r={pr:.4f}  Spearman ρ={sr:.4f}")
     return {"rmse": rmse, "mae": mae, "pearson": pr, "spearman": sr}
 
-
+import time
 def train_epoch(model, loader, optimiser, device, use_hc):
     model.train()
     total_loss = 0.0
+    t_load, t_forward, t_backward = 0.0, 0.0, 0.0
+    t0 = time.time()
     for batch in loader:
+        t_load += time.time() - t0
+
+        t1 = time.time()
         if use_hc:
             x_seq, x_hc, y = [b.to(device) for b in batch]
             pred = model(x_seq, x_hc)
         else:
             x_seq, y = [b.to(device) for b in batch]
             pred = model(x_seq)
+        t_forward += time.time() - t1
+
+        t2 = time.time()
         loss = F.mse_loss(pred, y)
         optimiser.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimiser.step()
+        t_backward += time.time() - t2
+
         total_loss += loss.item() * len(y)
+        t0 = time.time()
     return total_loss / len(loader.dataset)
 
 
@@ -283,8 +295,8 @@ def main():
     hc_train = hc_test = None
     hc_dim = 0
     if args.handcrafted:
-        hc_train, hc_dim = build_hc_features(train_seqs)
-        hc_test,  _ = build_hc_features(test_seqs)
+        hc_train, hc_dim, hc_mean, hc_std = build_hc_features(train_seqs)
+        hc_test,_,_,_ = build_hc_features(test_seqs, mean=hc_mean, std=hc_std)
         print(f"[features] Hand-crafted dim = {hc_dim}")
 
     train_ds = GRNADataset(train_seqs, y_train, hc_train)
@@ -330,7 +342,7 @@ def main():
     model = CNN(hc_dim=hc_dim, dropout=args.dropout).to(device)
 
     if args.checkpoint:
-        state = torch.load(args.checkpoint, map_location=device)
+        state = torch.load(args.checkpoint, map_location=device, weights_only=True)
         model.load_state_dict(state)
         print(f"[checkpoint] Loaded {args.checkpoint}")
 
@@ -360,7 +372,7 @@ def main():
 
         if epoch % 10 == 0 or epoch == 1:
             pr, _ = pearsonr(y_true_norm, y_pred_norm)
-            print(f"epoch {epoch:3d}  train_loss={tr_loss:.4f}" f"test_RMSE={rmse:.4f}  Pearson={pr:.4f}")
+            print(f"epoch {epoch:3d}  train_loss={tr_loss:.4f} test_RMSE={rmse:.4f}  Pearson={pr:.4f}")
 
         if rmse < best_test_rmse:
             best_test_rmse = rmse
