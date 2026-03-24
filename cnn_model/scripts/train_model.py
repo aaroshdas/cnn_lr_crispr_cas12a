@@ -1,7 +1,10 @@
 """
+* had to scale model down cause im travelling so running this on CPU, but I had Claude
+reform model to run on google collab with GPU so use that for now
+
 Architecture:
     One-hot
-    Multi-scale conv towers (kernel 3, 5, 7)
+    Multi-scale conv towers
     Residual connections
     Attention pooling
     Handcrafted features at DNN stage
