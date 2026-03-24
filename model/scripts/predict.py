@@ -16,19 +16,9 @@ PAM_START  = 4
 WINDOW_LEN = 34
 
 
-COMPLEMENT = str.maketrans("ACGT", "TGCA")
-
-def reverse_complement(seq: str) -> str:
-    return seq.translate(COMPLEMENT)[::-1]
-
-
 def find_window(seq: str, pam: str):
     pam = pam.upper()
     seq = seq.upper()
-
-    # pam = reverse_complement(pam)
-    # seq = reverse_complement(seq)
-
 
     i = seq[4:].find(pam)
     if i == -1:

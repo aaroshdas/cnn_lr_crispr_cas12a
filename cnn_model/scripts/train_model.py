@@ -102,31 +102,30 @@ class CNN(nn.Module):
     def __init__(self, hc_dim: int = 0, dropout: float = 0.3):
         super().__init__()
 
-        # two towers (3, 5)
-        self.tower3 = nn.Sequential(
-            ResConvBlock(4, 32, 3),
-            ResConvBlock(32, 32, 3),
-        )
-        self.tower5 = nn.Sequential(
-            ResConvBlock(4, 32, 5),
-            ResConvBlock(32, 32, 5),
-        )
+        self.tower3 = nn.Sequential(ResConvBlock(4, 64, 3), ResConvBlock(64, 64, 3))
+        self.tower5 = nn.Sequential(ResConvBlock(4, 64, 5), ResConvBlock(64, 64, 5))
+        self.tower7 = nn.Sequential(ResConvBlock(4, 64, 7), ResConvBlock(64, 64, 7))
 
-        self.merge = ResConvBlock(64, 64, 3)
-        self.pool = AttentionPool(64)
+        self.merge = ResConvBlock(192, 128, 3)
+        self.pool = AttentionPool(128)
 
-        fc_in = 64 + hc_dim
+        fc_in = 128 + hc_dim
         self.fc = nn.Sequential(
-            nn.Linear(fc_in, 64),
+            nn.Linear(fc_in, 128),
+            nn.BatchNorm1d(128),
             nn.ReLU(),
             nn.Dropout(dropout),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(dropout / 2),
             nn.Linear(64, 1),
         )
 
     def forward(self, x_seq, x_hc=None):
         t3 = self.tower3(x_seq)
         t5 = self.tower5(x_seq)
-        x = torch.cat([t3, t5], dim=1) 
+        t7 = self.tower7(x_seq)
+        x = torch.cat([t3, t5, t7], dim=1) 
         x = self.merge(x)
         x = self.pool(x)
         if x_hc is not None:
