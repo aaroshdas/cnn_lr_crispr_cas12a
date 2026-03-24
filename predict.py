@@ -85,7 +85,7 @@ def reg_predict(sequence: str):
     with open(features_path) as f:
         active_features= json.load(f)
 
-    features = build_features([sequence], features_names=active_features).values.astype(np.float32)
+    features = build_features([sequence], feature_names=active_features).values.astype(np.float32)
     features = np.nan_to_num(features)
 
     pred_norm = model.predict(features)[0]
@@ -148,8 +148,7 @@ def predict_csv(csv_path: str, model: str):
             result_df.loc[len(result_df)] = {"sequence": sequence, "Predicted": -1, "Actual": actual}
             print(f"Error in predicting {name}, skipping")
 
-        result_df["model"] = model
-        result_df.to_csv(os.path.join(OUTPUT_DIR, "QKR_predictions.csv"), index=False)
+        result_df.to_csv(os.path.join(OUTPUT_DIR, f"QKR_predictions_{model}.csv"), index=False)
 
 
 if __name__ == "__main__":
