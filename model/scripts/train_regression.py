@@ -239,15 +239,6 @@ def main():
         summary_df.to_csv(summary_path, index=False)
 
 
-# ACTIVE_FEATURES = [    
-#     'gc_content', 
-#     'self_comp', 
-#     'homopolymer_count', 
-#     'spacer_gc', 
-#     'cleavage_gc',
-#     'one_hot'
-# ]
-
 ACTIVE_FEATURES = [
     'gc_content', 
     'tm', 
