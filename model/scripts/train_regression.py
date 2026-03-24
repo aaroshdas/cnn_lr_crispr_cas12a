@@ -1,6 +1,8 @@
 """
+**run w/o embeddings for now cause dnabert needs a different venv and 
+kmer embeddings just adding noise 
+
 python model/scripts/train_regression.py --no-embed
-python model/scripts/train_regression.py 
 python model/scripts/train_regression.py --no-handcrafted
 python model/scripts/train_regression.py --layer mean
 python model/scripts/train_regression.py --no-cv --no-embed
