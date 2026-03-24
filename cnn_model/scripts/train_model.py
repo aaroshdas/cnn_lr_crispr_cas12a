@@ -1,7 +1,7 @@
 """
 * had to scale model down cause im travelling so running this on CPU, but I had Claude
 reform model to run on google collab with GPU so use that for now
-** its also more updated
+** its also more updated --> just upload repo to your drive and rename
 
 Architecture:
     One-hot
