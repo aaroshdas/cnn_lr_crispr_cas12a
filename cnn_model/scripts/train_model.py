@@ -11,6 +11,8 @@ Usage:
     (w/ handcrafted) python cnn_model/scripts/train_model.py --handcrafted
     (checkpoint) python cnn_model/scripts/train_model.py --checkpoint cnn_model/weights/cnn_best.pt
     (eval)  python cnn_model/scripts/train_model.py --eval-only --checkpoint cnn_model/weights/cnn_best.pt
+
+    python cnn_model/scripts/train_model.py --handcrafted --no-cv
 """
 
 import argparse
@@ -93,53 +95,40 @@ class AttentionPool(nn.Module):
         w = torch.softmax(self.attn(x), dim=-1)
         return (x * w).sum(dim=-1)
 
-
 class CNN(nn.Module):
     def __init__(self, hc_dim: int = 0, dropout: float = 0.3):
         super().__init__()
 
-        # multi-scale towers (kernels 3, 5, 7) 
+        # two towers (3, 5)
         self.tower3 = nn.Sequential(
-            ResConvBlock(4, 64, 3),
-            ResConvBlock(64, 64, 3),
+            ResConvBlock(4, 32, 3),
+            ResConvBlock(32, 32, 3),
         )
         self.tower5 = nn.Sequential(
-            ResConvBlock(4, 64, 5),
-            ResConvBlock(64, 64, 5),
-        )
-        self.tower7 = nn.Sequential(
-            ResConvBlock(4, 64, 7),
-            ResConvBlock(64, 64, 7),
+            ResConvBlock(4, 32, 5),
+            ResConvBlock(32, 32, 5),
         )
 
-        merged_ch = 64 * 3
-        self.merge = ResConvBlock(merged_ch, 128, 3)
+        self.merge = ResConvBlock(64, 64, 3)
+        self.pool = AttentionPool(64)
 
-        self.pool = AttentionPool(128)
-
-        fc_in = 128 + hc_dim
+        fc_in = 64 + hc_dim
         self.fc = nn.Sequential(
-            nn.Linear(fc_in, 128),
-            nn.BatchNorm1d(128),
+            nn.Linear(fc_in, 64),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(dropout / 2),
             nn.Linear(64, 1),
         )
 
     def forward(self, x_seq, x_hc=None):
         t3 = self.tower3(x_seq)
         t5 = self.tower5(x_seq)
-        t7 = self.tower7(x_seq)
-        x = torch.cat([t3, t5, t7], dim=1)
+        x = torch.cat([t3, t5], dim=1) 
         x = self.merge(x)
         x = self.pool(x)
         if x_hc is not None:
             x = torch.cat([x, x_hc], dim=1)
         return self.fc(x).squeeze(1)
-
 
 def load_data(path):
     df = pd.read_csv(path).dropna(subset=[TARGET_COL])
@@ -257,14 +246,14 @@ def eval_epoch(model, loader, device, use_hc):
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--epochs", type=int, default=100)
+    p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--dropout", type=float, default=0.3)
     p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--handcrafted", action="store_true", help="Use scalar hand-crafted features at the FC layer")
     p.add_argument("--no-cv", action="store_true")
-    p.add_argument("--cv-folds", type=int, default=5)
+    p.add_argument("--cv-folds", type=int, default=2)
     p.add_argument("--patience", type=int, default=15, help="early-stopping patience")
     p.add_argument("--checkpoint", type=str, default=None, help="path to .pt checkpoint to resume from")
     p.add_argument("--eval-only", action="store_true")
@@ -316,6 +305,7 @@ def main():
 
             best_val, patience_ctr = np.inf, 0
             for epoch in range(1, args.epochs + 1):
+                print(f"Fold {fold} | Epoch {epoch}/{args.epochs}")
                 train_epoch(model, tr_loader, opt, device, args.handcrafted)
                 val_pred, val_true = eval_epoch(model, val_loader, device, args.handcrafted)
                 val_loss = mean_squared_error(val_true, val_pred)
