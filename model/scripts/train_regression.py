@@ -3,6 +3,7 @@ python model/scripts/train_regression.py --no-embed
 python model/scripts/train_regression.py 
 python model/scripts/train_regression.py --no-handcrafted
 python model/scripts/train_regression.py --layer mean
+python model/scripts/train_regression.py --no-cv --no-embed
 """
 
 import argparse
