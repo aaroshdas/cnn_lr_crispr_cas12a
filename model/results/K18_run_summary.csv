@@ -2,3 +2,4 @@ layer,no_embed,no_handcrafted,no_cv,embedding_method,test_rmse,test_mae,test_pea
 cls,True,False,False,kmer,0.8013861999562103,0.6651444435119629,0.29205284,0.25590274352173686,True,False,False,True,True,False,False,False,False,False,False,False,False,True,False,False,True,False,False,False,False,False,False,False,True
 cls,True,False,False,kmer,0.7603997180739537,0.6040903329849243,0.39954972,0.39345570914262856,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True
 cls,True,False,True,kmer,0.7603997180739537,0.6040903329849243,0.39954972,0.39345570914262856,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True
+cls,True,False,False,kmer,0.7603997180739537,0.6040903329849243,0.39954972,0.39345570914262856,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True
