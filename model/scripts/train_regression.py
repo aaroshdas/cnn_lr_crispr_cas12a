@@ -11,6 +11,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
+import json
 
 from scipy.stats import pearsonr, spearmanr
 from sklearn.linear_model import Ridge
@@ -88,6 +89,14 @@ def assemble_features(sequences, args):
        ).values.astype(np.float32)
         hc = np.nan_to_num(hc)
         parts.append(hc)
+        
+        features_path = os.path.join(WEIGHTS_DIR, "feature_names.json")
+        with open(features_path, "w") as f:
+            json.dump(ACTIVE_FEATURES, f)
+    else:
+        with open(features_path, "w") as f:
+            json.dump([], f)
+
 
     if not args.no_embed:
         emb = create_embeddings.get_embeddings(sequences, layer=args.layer, method=args.embedding_method)
