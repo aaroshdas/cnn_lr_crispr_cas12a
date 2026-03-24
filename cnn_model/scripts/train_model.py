@@ -112,13 +112,17 @@ class CNN(nn.Module):
 
         fc_in = 128 + hc_dim
         self.fc = nn.Sequential(
-            nn.Linear(fc_in, 128),
-            nn.BatchNorm1d(128),
+            # nn.Linear(fc_in, 128),
+            # nn.BatchNorm1d(128),
+            # nn.ReLU(),
+            # nn.Dropout(dropout),
+            # nn.Linear(128, 64),
+            # nn.ReLU(),
+            # nn.Dropout(dropout / 2),
+            # nn.Linear(64, 1),
+            nn.Linear(fc_in, 64),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(dropout / 2),
             nn.Linear(64, 1),
         )
 
