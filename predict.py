@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'model/scripts'))
 from feature_engineering import build_features # type: ignore
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'cnn_model/scripts'))
-from train_model import CNN, one_hot_encode # type: ignore
+from train_model import CNN, one_hot_encode, build_hc_features # type: ignore
 
 import pandas as pd
 import torch
@@ -95,8 +95,13 @@ def reg_predict(sequence: str):
 
 def cnn_predict(sequence: str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    model = CNN(hc_dim=0).to(device)
+
+    config_path = os.path.join(CNN_WEIGHTS_PATH, "cnn_config.json")
+    with open(config_path) as f:
+        config = json.load(f)
+
+    hc_dim = config["hc_dim"]
+    model = CNN(hc_dim=hc_dim).to(device)
     state = torch.load(CNN_MODEL_PATH, map_location=device, weights_only=True)
     model.load_state_dict(state)
     model.eval()
@@ -104,11 +109,19 @@ def cnn_predict(sequence: str):
     t_mean = float(np.load(os.path.join(CNN_WEIGHTS_PATH, MEAN_PATH)))
     t_std  = float(np.load(os.path.join(CNN_WEIGHTS_PATH, STD_PATH)))
 
+    if hc_dim > 0:
+        hc_mean_path = os.path.join(CNN_WEIGHTS_PATH, "hc_mean.npy")
+        hc_std_path  = os.path.join(CNN_WEIGHTS_PATH, "hc_std.npy")
+        hc_mean = np.load(hc_mean_path)
+        hc_std  = np.load(hc_std_path)
+        hc, _, _, _ = build_hc_features([sequence], mean=hc_mean, std=hc_std)
+        x_hc = torch.tensor(hc).to(device)
+    else:
+        x_hc = None
 
-    device = next(model.parameters()).device
-    x = torch.tensor(one_hot_encode(sequence)).unsqueeze(0).to(device)  # (1, 4, 34)
+    x = torch.tensor(one_hot_encode(sequence)).unsqueeze(0).to(device)
     with torch.no_grad():
-        pred_norm = model(x).item()
+        pred_norm = model(x, x_hc).item()
     return pred_norm * t_std + t_mean
 
 
