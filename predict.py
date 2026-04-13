@@ -2,6 +2,7 @@ import argparse
 import pickle
 import numpy as np
 import csv
+from scipy.stats import spearmanr
 
 import sys
 import os
@@ -35,15 +36,15 @@ WINDOW_LEN = 34
 
 COMPLEMENT = str.maketrans("ACGT", "TGCA")
 
-def reverse_complement(seq: str) -> str:
+def reverse_complement(seq: str):
     return seq.translate(COMPLEMENT)[::-1]
 
 def find_window(seq: str, pam: str):
     pam = pam.upper()
     seq = seq.upper()
 
-    pam = reverse_complement(pam)
-    seq = reverse_complement(seq)
+    # pam = reverse_complement(pam)
+    # seq = reverse_complement(seq)
 
     i = seq[4:].find(pam)
     if i == -1:
@@ -133,6 +134,13 @@ def cnn_predict(sequence: str):
     return pred_norm * t_std + t_mean
 
 
+def evaluate(predicted, actual):
+    # predicted = np.array(predicted, dtype=float)
+    # actual = np.array(actual, dtype=float)
+    rmse = np.sqrt(np.mean((predicted - actual) ** 2))
+    rho, pval = spearmanr(predicted, actual)
+    return rmse, rho, pval
+
 def predict_csv(csv_path: str, model: str):
     seq_col = "FOR MODEL - 47 bp match target sequence reverse complement"
     pam_col = "PAM (reverse complement on DNA target sequence)"
@@ -170,6 +178,16 @@ def predict_csv(csv_path: str, model: str):
             print(f"Error in predicting {name}, skipping")
 
         result_df.to_csv(os.path.join(OUTPUT_DIR, f"QKR_predictions_{model}.csv"), index=False)
+
+    valid = result_df[result_df["Predicted"] != -1]
+    try:
+        preds = valid["Predicted"].astype(float)
+        actuals = valid["Actual"].str.rstrip("%").astype(float)
+        rmse, rho, pval = evaluate(preds, actuals)
+        print("-" * 60)
+        print(f"RMSE: {rmse:.3f} | Spearman: {rho:.3f} p={pval:.3e}")
+    except Exception as e:
+        print(e)
 
 
 if __name__ == "__main__":
